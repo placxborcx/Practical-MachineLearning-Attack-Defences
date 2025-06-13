@@ -1,9 +1,9 @@
 {
   "target_accuracy": 98.72,
-  "surrogate_accuracy": 92.02,
-  "agreement_rate": 92.31,
-  "accuracy_gap": 6.700000000000003,
-  "avg_class_difference": 6.8235674294407405,
+  "surrogate_accuracy": 91.32,
+  "agreement_rate": 91.68,
+  "accuracy_gap": 7.400000000000006,
+  "avg_class_difference": 7.389836465914549,
   "attack_success": true,
   "success_criteria_met": 3
 }
