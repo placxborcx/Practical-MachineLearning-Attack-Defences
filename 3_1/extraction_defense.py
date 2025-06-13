@@ -1,26 +1,23 @@
-# test_defense.py
+# enhanced_defense_evaluation.py
 """
-Test Defense Mechanism Against Model Extraction Attack
-=====================================================
-This script integrates the defense mechanism with your extraction attack
-to evaluate its effectiveness.
+Enhanced Defense Evaluation with Normal Usage Impact Assessment
+==============================================================
+Evaluates both attack prevention effectiveness and impact on legitimate users
 """
 
 import json
 import time
 import torch
 import numpy as np
-from pathlib import Path
-from typing import Dict
+from typing import Dict, List, Tuple
 
-# Import your attack components
+# Import from extraction_attack - make sure all needed functions are imported
 from extraction_attack import (
     CFG, get_loaders, load_victim, BlackBoxAPI,
     build_query_set, train_surrogate, accuracy, agreement,
-    SurrogateNet
+    SurrogateNet, DEVICE
 )
 
-# Import defense mechanism
 from defense_mechanism import DefendedBlackBoxAPI, DefenseMechanism
 
 import logging
@@ -28,42 +25,103 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def run_extraction_attack(api, n_queries: int, label: str = ""):
-    """Run extraction attack and return results"""
-    print(f"\n[{label}] Running extraction attack with {n_queries} queries...")
+def evaluate_normal_usage_impact(victim_model, defended_api, test_loader, num_samples=1000):
+    """
+    Evaluate the impact of defense mechanism on normal/legitimate queries
     
-    t_start = time.perf_counter()
+    Args:
+        victim_model: Original undefended model
+        defended_api: Defended API
+        test_loader: Test data loader
+        num_samples: Number of samples to test
+        
+    Returns:
+        Dictionary with evaluation metrics
+    """
+    print("\n[Normal Usage Evaluation] Testing impact on legitimate queries...")
     
-    # Build query set
-    qset = build_query_set(api, n_queries)
-    query_time = time.perf_counter() - t_start
+    device = next(victim_model.parameters()).device
     
-    # Train surrogate
-    t_train = time.perf_counter()
-    surrogate = train_surrogate(qset)
-    train_time = time.perf_counter() - t_train
+    # Collect predictions from both models
+    undefended_predictions = []
+    defended_predictions = []
+    true_labels = []
     
-    total_time = time.perf_counter() - t_start
+    sample_count = 0
+    victim_model.eval()
+    
+    with torch.no_grad():
+        for data, labels in test_loader:
+            if sample_count >= num_samples:
+                break
+                
+            batch_size = min(len(data), num_samples - sample_count)
+            data = data[:batch_size].to(device)
+            labels = labels[:batch_size]
+            
+            # Undefended predictions
+            undefended_output = victim_model(data)
+            undefended_pred = undefended_output.argmax(dim=1).cpu()
+            
+            # Defended predictions (through API)
+            defended_output = defended_api.query(data, logits=True)
+            defended_pred = defended_output.argmax(dim=1).cpu()
+            
+            undefended_predictions.extend(undefended_pred.numpy())
+            defended_predictions.extend(defended_pred.numpy())
+            true_labels.extend(labels.numpy())
+            
+            sample_count += batch_size
+    
+    # Calculate metrics
+    undefended_predictions = np.array(undefended_predictions)
+    defended_predictions = np.array(defended_predictions)
+    true_labels = np.array(true_labels)
+    
+    # Accuracy
+    undefended_accuracy = (undefended_predictions == true_labels).mean()
+    defended_accuracy = (defended_predictions == true_labels).mean()
+    
+    # Agreement between defended and undefended
+    prediction_agreement = (undefended_predictions == defended_predictions).mean()
+    
+    # Accuracy drop
+    accuracy_drop = undefended_accuracy - defended_accuracy
+    
+    # Per-class analysis
+    class_impacts = {}
+    for class_id in range(10):
+        class_mask = true_labels == class_id
+        if class_mask.sum() > 0:
+            undefended_class_acc = (undefended_predictions[class_mask] == true_labels[class_mask]).mean()
+            defended_class_acc = (defended_predictions[class_mask] == true_labels[class_mask]).mean()
+            class_impacts[class_id] = {
+                'undefended_acc': float(undefended_class_acc),
+                'defended_acc': float(defended_class_acc),
+                'accuracy_drop': float(undefended_class_acc - defended_class_acc)
+            }
     
     return {
-        'surrogate': surrogate,
-        'query_time': query_time,
-        'train_time': train_time,
-        'total_time': total_time
+        'undefended_accuracy': float(undefended_accuracy),
+        'defended_accuracy': float(defended_accuracy),
+        'accuracy_drop': float(accuracy_drop),
+        'prediction_agreement': float(prediction_agreement),
+        'class_impacts': class_impacts,
+        'samples_tested': sample_count
     }
 
 
-def comprehensive_defense_evaluation():
-    """Run comprehensive evaluation of defense mechanism"""
+def comprehensive_defense_evaluation_with_normal_usage():
+    """Enhanced evaluation including normal usage impact"""
     
     # Setup
     device = torch.device(CFG["device"])
     victim = load_victim()
     train_loader, test_loader = get_loaders(CFG["batch_size"])
     
-    # Test different defense configurations
+    # Defense configurations
     defense_configs = {
-        'baseline': None,  # No defense
+        'baseline': None,
         'low': {
             'base_noise_scale': 0.005,
             'max_noise_scale': 0.05,
@@ -95,6 +153,11 @@ def comprehensive_defense_evaluation():
     
     results = {}
     
+    # Get baseline victim accuracy first
+    print("\n[Baseline Evaluation]")
+    victim_accuracy = accuracy(victim, test_loader)
+    print(f"Original Victim Model Accuracy: {victim_accuracy*100:.2f}%")
+    
     # Test each configuration
     for config_name, config in defense_configs.items():
         print(f"\n{'='*60}")
@@ -102,254 +165,202 @@ def comprehensive_defense_evaluation():
         print('='*60)
         
         if config_name == 'baseline':
-            # Undefended API
+            # For baseline, just run undefended attack
             api = BlackBoxAPI(victim)
-            defense_report = None
-        else:
-            # Defended API
-            api = DefendedBlackBoxAPI(victim, config)
-            api.fit_defense(train_loader)
             
-        # Run attack with different query budgets
-        query_budgets = [2000, 5000, 8000]
-        config_results = {}
-        
-        for n_queries in query_budgets:
+            print(f"\nAttack Test (No Defense):")
+            n_queries = 5000
+            
             # Run extraction attack
-            attack_result = run_extraction_attack(api, n_queries, f"{config_name}-{n_queries}")
+            t_start = time.perf_counter()
+            qset = build_query_set(api, n_queries)
+            surrogate = train_surrogate(qset)
+            attack_time = time.perf_counter() - t_start
             
-            # Evaluate surrogate
-            surrogate = attack_result['surrogate']
             surrogate_acc = accuracy(surrogate, test_loader)
             agr_rate = agreement(victim, surrogate, test_loader)
             
-            # Get defense metrics if applicable
-            defense_metrics = api.get_defense_report() if hasattr(api, 'get_defense_report') else {}
-            
-            config_results[f'n{n_queries}'] = {
-                'surrogate_accuracy': surrogate_acc,
-                'agreement_rate': agr_rate,
-                'attack_time': attack_result['total_time'],
-                'defense_metrics': defense_metrics
-            }
-            
-            print(f"\n  Queries: {n_queries}")
             print(f"  Surrogate Accuracy: {surrogate_acc*100:.2f}%")
             print(f"  Agreement Rate: {agr_rate*100:.2f}%")
             
-            if defense_metrics:
-                print(f"  Perturbed Responses: {defense_metrics.get('perturbed_responses', 0)}")
-                print(f"  Perturbation Rate: {defense_metrics.get('perturbation_rate', 0)*100:.2f}%")
+            results[config_name] = {
+                'normal_usage': {
+                    'undefended_accuracy': float(victim_accuracy),
+                    'defended_accuracy': float(victim_accuracy),
+                    'accuracy_drop': 0.0,
+                    'prediction_agreement': 1.0
+                },
+                'attack_prevention': {
+                    'surrogate_accuracy': float(surrogate_acc),
+                    'agreement_rate': float(agr_rate),
+                    'attack_time': attack_time
+                }
+            }
+            continue
+            
+        # Create defended API
+        defended_api = DefendedBlackBoxAPI(victim, config)
+        defended_api.fit_defense(train_loader)
         
-        results[config_name] = config_results
+        # 1. Normal usage impact evaluation
+        normal_usage_results = evaluate_normal_usage_impact(
+            victim, defended_api, test_loader, num_samples=2000
+        )
+        
+        print(f"\nNormal Usage Impact:")
+        print(f"  Original Accuracy: {normal_usage_results['undefended_accuracy']*100:.2f}%")
+        print(f"  Defended Accuracy: {normal_usage_results['defended_accuracy']*100:.2f}%")
+        print(f"  Accuracy Drop: {normal_usage_results['accuracy_drop']*100:.2f}%")
+        print(f"  Prediction Agreement: {normal_usage_results['prediction_agreement']*100:.2f}%")
+        
+        # 2. Attack prevention evaluation (simplified)
+        print(f"\nAttack Prevention Test:")
+        n_queries = 5000
+        
+        # Run extraction attack
+        t_start = time.perf_counter()
+        qset = build_query_set(defended_api, n_queries)
+        surrogate = train_surrogate(qset)
+        attack_time = time.perf_counter() - t_start
+        
+        surrogate_acc = accuracy(surrogate, test_loader)
+        agr_rate = agreement(victim, surrogate, test_loader)
+        
+        print(f"  Surrogate Accuracy: {surrogate_acc*100:.2f}%")
+        print(f"  Agreement Rate: {agr_rate*100:.2f}%")
+        
+        # Store results
+        results[config_name] = {
+            'normal_usage': normal_usage_results,
+            'attack_prevention': {
+                'surrogate_accuracy': float(surrogate_acc),
+                'agreement_rate': float(agr_rate),
+                'attack_time': attack_time
+            },
+            'defense_report': defended_api.get_defense_report()
+        }
     
-    # Calculate defense effectiveness
+    # Summary
     print("\n" + "="*60)
-    print("DEFENSE EFFECTIVENESS SUMMARY")
+    print("DEFENSE EVALUATION SUMMARY")
     print("="*60)
     
-    baseline_8k = results['baseline']['n8000']
+    baseline_results = results.get('baseline', {})
+    if baseline_results:
+        baseline_acc = baseline_results['attack_prevention']['surrogate_accuracy']
+        baseline_agr = baseline_results['attack_prevention']['agreement_rate']
+    else:
+        baseline_acc = victim_accuracy
+        baseline_agr = 1.0
     
-    effectiveness = {}
+    print("\nDefense Trade-off Analysis:")
+    print("Config    | Normal Acc Drop | Surrogate Acc | Agreement | Trade-off Score")
+    print("-" * 75)
+    
     for config_name in ['low', 'medium', 'high', 'adaptive']:
         if config_name in results:
-            defended_8k = results[config_name]['n8000']
+            normal_drop = results[config_name]['normal_usage']['accuracy_drop'] * 100
+            surrogate_acc = results[config_name]['attack_prevention']['surrogate_accuracy'] * 100
+            agreement_rate = results[config_name]['attack_prevention']['agreement_rate'] * 100
             
-            acc_reduction = baseline_8k['surrogate_accuracy'] - defended_8k['surrogate_accuracy']
-            agr_reduction = baseline_8k['agreement_rate'] - defended_8k['agreement_rate']
+            # Trade-off score: lower surrogate accuracy is better, lower normal drop is better
+            # Score = (100 - surrogate_acc) - (2 * normal_drop)  # Penalize normal usage impact more
+            trade_off_score = (100 - surrogate_acc) - (2 * normal_drop)
             
-            effectiveness[config_name] = {
-                'accuracy_reduction': acc_reduction * 100,
-                'agreement_reduction': agr_reduction * 100,
-                'relative_impact': (agr_reduction / baseline_8k['agreement_rate']) * 100
-            }
-            
-            print(f"\n{config_name.upper()} Defense:")
-            print(f"  Accuracy Reduction: {acc_reduction*100:.2f}%")
-            print(f"  Agreement Reduction: {agr_reduction*100:.2f}%")
-            print(f"  Relative Impact: {effectiveness[config_name]['relative_impact']:.2f}%")
+            print(f"{config_name:9} | {normal_drop:15.2f}% | {surrogate_acc:13.2f}% | {agreement_rate:9.2f}% | {trade_off_score:15.2f}")
     
-    # Save detailed results
+    # Save results
     output = {
         'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
+        'victim_accuracy': float(victim_accuracy),
         'configurations': defense_configs,
-        'results': results,
-        'effectiveness': effectiveness,
-        'victim_accuracy': accuracy(victim, test_loader)
+        'results': results
     }
     
-    with open('defense_evaluation_results.json', 'w') as f:
+    with open('enhanced_defense_evaluation.json', 'w') as f:
         json.dump(output, f, indent=2)
     
-    print("\nDetailed results saved to defense_evaluation_results.json")
-    
-    # Visualize defense impact
-    print("\n" + "="*60)
-    print("DEFENSE IMPACT VISUALIZATION")
-    print("="*60)
-    
-    configs = ['baseline', 'low', 'medium', 'high', 'adaptive']
-    
-    print("\nSurrogate Accuracy (%) vs Query Budget:")
-    print("Config     | 2000q | 5000q | 8000q |")
-    print("-"*36)
-    
-    for config in configs:
-        if config in results:
-            line = f"{config:10} |"
-            for n in [2000, 5000, 8000]:
-                acc = results[config][f'n{n}']['surrogate_accuracy'] * 100
-                line += f" {acc:5.1f} |"
-            print(line)
-    
-    print("\nAgreement Rate (%) vs Query Budget:")
-    print("Config     | 2000q | 5000q | 8000q |")
-    print("-"*36)
-    
-    for config in configs:
-        if config in results:
-            line = f"{config:10} |"
-            for n in [2000, 5000, 8000]:
-                agr = results[config][f'n{n}']['agreement_rate'] * 100
-                line += f" {agr:5.1f} |"
-            print(line)
+    print("\nDetailed results saved to enhanced_defense_evaluation.json")
     
     return results
 
 
-def test_specific_defense_config(defense_config: Dict = None):
-    """Test a specific defense configuration"""
+def test_defense_transparency():
+    """
+    Test how transparent the defense is to normal users
+    Runs multiple legitimate queries and checks consistency
+    """
+    print("\n" + "="*60)
+    print("DEFENSE TRANSPARENCY TEST")
+    print("="*60)
     
     # Setup
     device = torch.device(CFG["device"])
     victim = load_victim()
     train_loader, test_loader = get_loaders(CFG["batch_size"])
     
-    # Default config if none provided
-    if defense_config is None:
-        defense_config = {
-            'base_noise_scale': 0.01,
-            'max_noise_scale': 0.15,
-            'ood_threshold': 0.85,
-            'entropy_threshold': 0.7,
-            'pattern_threshold': 0.3,
-            'block_threshold': 0.7,
-            'deception_probability': 0.3
-        }
+    # Test configuration
+    test_config = {
+        'base_noise_scale': 0.01,
+        'max_noise_scale': 0.1,
+        'block_threshold': 0.7,
+        'ood_threshold': 0.85
+    }
     
-    print("\nDefense Configuration:")
-    print(json.dumps(defense_config, indent=2))
-    
-    # Create APIs
-    undefended_api = BlackBoxAPI(victim)
-    defended_api = DefendedBlackBoxAPI(victim, defense_config)
+    # Create defended API
+    defended_api = DefendedBlackBoxAPI(victim, test_config)
     defended_api.fit_defense(train_loader)
     
-    # Run attacks
-    n_queries = 8000
+    print("\nTesting query consistency for legitimate users...")
     
-    print(f"\nRunning extraction attacks with {n_queries} queries...")
+    # Test same query multiple times
+    consistency_results = []
     
-    # Undefended
-    t0 = time.perf_counter()
-    undefended_result = run_extraction_attack(undefended_api, n_queries, "Undefended")
-    undefended_time = time.perf_counter() - t0
+    for data, labels in test_loader:
+        if len(consistency_results) >= 10:  # Test 10 batches
+            break
+            
+        data = data[:10].to(device)  # Use first 10 samples
+        labels = labels[:10]
+        
+        # Query same data 5 times
+        predictions_list = []
+        for i in range(5):
+            output = defended_api.query(data, logits=True)
+            pred = output.argmax(dim=1).cpu()
+            predictions_list.append(pred)
+        
+        # Check consistency
+        first_pred = predictions_list[0]
+        consistency = all((pred == first_pred).all() for pred in predictions_list[1:])
+        consistency_results.append(consistency)
+        
+        if not consistency:
+            print(f"  Inconsistency detected in batch {len(consistency_results)}")
     
-    # Defended
-    t0 = time.perf_counter()
-    defended_result = run_extraction_attack(defended_api, n_queries, "Defended")
-    defended_time = time.perf_counter() - t0
+    consistency_rate = sum(consistency_results) / len(consistency_results)
+    print(f"\nQuery Consistency Rate: {consistency_rate*100:.2f}%")
+    print("(100% means defense is deterministic for legitimate queries)")
     
-    # Evaluate
-    undefended_acc = accuracy(undefended_result['surrogate'], test_loader)
-    undefended_agr = agreement(victim, undefended_result['surrogate'], test_loader)
-    
-    defended_acc = accuracy(defended_result['surrogate'], test_loader)
-    defended_agr = agreement(victim, defended_result['surrogate'], test_loader)
-    
-    # Get defense report
-    defense_report = defended_api.get_defense_report()
-    
-    # Print results
-    print("\n" + "="*60)
-    print("DEFENSE TEST RESULTS")
-    print("="*60)
-    
-    print("\nModel Performance:")
-    print(f"  Victim Accuracy: {accuracy(victim, test_loader)*100:.2f}%")
-    
-    print("\nUndefended Attack:")
-    print(f"  Surrogate Accuracy: {undefended_acc*100:.2f}%")
-    print(f"  Agreement Rate: {undefended_agr*100:.2f}%")
-    print(f"  Attack Time: {undefended_time:.2f}s")
-    
-    print("\nDefended Attack:")
-    print(f"  Surrogate Accuracy: {defended_acc*100:.2f}%")
-    print(f"  Agreement Rate: {defended_agr*100:.2f}%")
-    print(f"  Attack Time: {defended_time:.2f}s")
-    
-    print("\nDefense Impact:")
-    acc_reduction = (undefended_acc - defended_acc) * 100
-    agr_reduction = (undefended_agr - defended_agr) * 100
-    print(f"  Accuracy Reduction: {acc_reduction:.2f}%")
-    print(f"  Agreement Reduction: {agr_reduction:.2f}%")
-    print(f"  Relative Impact: {agr_reduction/(undefended_agr*100)*100:.2f}%")
-    
-    print("\nDefense Statistics:")
-    for k, v in defense_report.items():
-        if isinstance(v, float):
-            print(f"  {k}: {v:.4f}")
-        else:
-            print(f"  {k}: {v}")
-    
-    return {
-        'undefended': {
-            'accuracy': undefended_acc,
-            'agreement': undefended_agr,
-            'time': undefended_time
-        },
-        'defended': {
-            'accuracy': defended_acc,
-            'agreement': defended_agr,
-            'time': defended_time
-        },
-        'defense_report': defense_report,
-        'impact': {
-            'accuracy_reduction': acc_reduction,
-            'agreement_reduction': agr_reduction
-        }
-    }
+    return consistency_rate
 
 
 if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser()
-    parser.add_argument("--comprehensive", action="store_true", 
-                       help="Run comprehensive evaluation with multiple configs")
-    parser.add_argument("--config", type=str, 
-                       help="Path to defense config JSON file")
-    parser.add_argument("--quick", action="store_true",
-                       help="Quick test with default config")
+    parser.add_argument("--full", action="store_true", 
+                       help="Run full evaluation with normal usage impact")
+    parser.add_argument("--transparency", action="store_true",
+                       help="Test defense transparency")
     
     args = parser.parse_args()
     
-    if args.comprehensive:
-        # Run comprehensive evaluation
-        results = comprehensive_defense_evaluation()
-        
-    elif args.config:
-        # Load and test specific config
-        with open(args.config) as f:
-            config = json.load(f)
-        results = test_specific_defense_config(config)
-        
+    if args.transparency:
+        test_defense_transparency()
+    elif args.full:
+        comprehensive_defense_evaluation_with_normal_usage()
     else:
-        # Default quick test
-        print("Running quick defense test with default configuration...")
-        results = test_specific_defense_config()
-        
-        # Save quick test results
-        with open('quick_defense_test.json', 'w') as f:
-            json.dump(results, f, indent=2)
-        print("\nResults saved to quick_defense_test.json")
+        # Run enhanced evaluation by default
+        print("Running enhanced defense evaluation...")
+        comprehensive_defense_evaluation_with_normal_usage()
