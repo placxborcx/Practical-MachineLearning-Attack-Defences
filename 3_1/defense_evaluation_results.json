@@ -1,0 +1,254 @@
+{
+  "timestamp": "2025-06-13 18:40:21",
+  "configurations": {
+    "baseline": null,
+    "low": {
+      "base_noise_scale": 0.005,
+      "max_noise_scale": 0.05,
+      "block_threshold": 0.9,
+      "ood_threshold": 0.9
+    },
+    "medium": {
+      "base_noise_scale": 0.01,
+      "max_noise_scale": 0.1,
+      "block_threshold": 0.7,
+      "ood_threshold": 0.85
+    },
+    "high": {
+      "base_noise_scale": 0.02,
+      "max_noise_scale": 0.2,
+      "block_threshold": 0.5,
+      "ood_threshold": 0.8,
+      "deception_probability": 0.4
+    },
+    "adaptive": {
+      "base_noise_scale": 0.01,
+      "max_noise_scale": 0.15,
+      "block_threshold": 0.6,
+      "ood_threshold": 0.85,
+      "adaptive_factor": 3.0,
+      "pattern_threshold": 0.25
+    }
+  },
+  "results": {
+    "baseline": {
+      "n2000": {
+        "surrogate_accuracy": 0.9507,
+        "agreement_rate": 0.9546,
+        "attack_time": 4.457446611020714,
+        "defense_metrics": {}
+      },
+      "n5000": {
+        "surrogate_accuracy": 0.9753,
+        "agreement_rate": 0.9799,
+        "attack_time": 12.230912846047431,
+        "defense_metrics": {}
+      },
+      "n8000": {
+        "surrogate_accuracy": 0.9822,
+        "agreement_rate": 0.9864,
+        "attack_time": 17.68049437785521,
+        "defense_metrics": {}
+      }
+    },
+    "low": {
+      "n2000": {
+        "surrogate_accuracy": 0.9562,
+        "agreement_rate": 0.9614,
+        "attack_time": 4.484747929032892,
+        "defense_metrics": {
+          "query_count": 16,
+          "perturbed_responses": 2000,
+          "blocked_queries": 0,
+          "deceptive_responses": 0,
+          "perturbation_rate": 125.0,
+          "block_rate": 0.0,
+          "deception_rate": 0.0
+        }
+      },
+      "n5000": {
+        "surrogate_accuracy": 0.974,
+        "agreement_rate": 0.9783,
+        "attack_time": 10.788427510298789,
+        "defense_metrics": {
+          "query_count": 56,
+          "perturbed_responses": 7000,
+          "blocked_queries": 0,
+          "deceptive_responses": 0,
+          "perturbation_rate": 125.0,
+          "block_rate": 0.0,
+          "deception_rate": 0.0
+        }
+      },
+      "n8000": {
+        "surrogate_accuracy": 0.9785,
+        "agreement_rate": 0.982,
+        "attack_time": 18.00080790789798,
+        "defense_metrics": {
+          "query_count": 119,
+          "perturbed_responses": 15000,
+          "blocked_queries": 0,
+          "deceptive_responses": 0,
+          "perturbation_rate": 126.05042016806723,
+          "block_rate": 0.0,
+          "deception_rate": 0.0
+        }
+      }
+    },
+    "medium": {
+      "n2000": {
+        "surrogate_accuracy": 0.4936,
+        "agreement_rate": 0.494,
+        "attack_time": 4.316724209114909,
+        "defense_metrics": {
+          "query_count": 16,
+          "perturbed_responses": 444,
+          "blocked_queries": 1556,
+          "deceptive_responses": 0,
+          "perturbation_rate": 27.75,
+          "block_rate": 97.25,
+          "deception_rate": 0.0
+        }
+      },
+      "n5000": {
+        "surrogate_accuracy": 0.5285,
+        "agreement_rate": 0.5288,
+        "attack_time": 10.588066679891199,
+        "defense_metrics": {
+          "query_count": 56,
+          "perturbed_responses": 1570,
+          "blocked_queries": 5430,
+          "deceptive_responses": 0,
+          "perturbation_rate": 28.035714285714285,
+          "block_rate": 96.96428571428571,
+          "deception_rate": 0.0
+        }
+      },
+      "n8000": {
+        "surrogate_accuracy": 0.5385,
+        "agreement_rate": 0.5383,
+        "attack_time": 17.946063736919314,
+        "defense_metrics": {
+          "query_count": 119,
+          "perturbed_responses": 3332,
+          "blocked_queries": 11668,
+          "deceptive_responses": 0,
+          "perturbation_rate": 28.0,
+          "block_rate": 98.05042016806723,
+          "deception_rate": 0.0
+        }
+      }
+    },
+    "high": {
+      "n2000": {
+        "surrogate_accuracy": 0.4727,
+        "agreement_rate": 0.4736,
+        "attack_time": 4.267477873247117,
+        "defense_metrics": {
+          "query_count": 16,
+          "perturbed_responses": 232,
+          "blocked_queries": 1541,
+          "deceptive_responses": 227,
+          "perturbation_rate": 14.5,
+          "block_rate": 96.3125,
+          "deception_rate": 14.1875
+        }
+      },
+      "n5000": {
+        "surrogate_accuracy": 0.4856,
+        "agreement_rate": 0.487,
+        "attack_time": 10.431888926308602,
+        "defense_metrics": {
+          "query_count": 56,
+          "perturbed_responses": 794,
+          "blocked_queries": 5420,
+          "deceptive_responses": 786,
+          "perturbation_rate": 14.178571428571429,
+          "block_rate": 96.78571428571429,
+          "deception_rate": 14.035714285714286
+        }
+      },
+      "n8000": {
+        "surrogate_accuracy": 0.4919,
+        "agreement_rate": 0.4933,
+        "attack_time": 17.590367664117366,
+        "defense_metrics": {
+          "query_count": 119,
+          "perturbed_responses": 1638,
+          "blocked_queries": 11631,
+          "deceptive_responses": 1731,
+          "perturbation_rate": 13.764705882352942,
+          "block_rate": 97.73949579831933,
+          "deception_rate": 14.546218487394958
+        }
+      }
+    },
+    "adaptive": {
+      "n2000": {
+        "surrogate_accuracy": 0.5231,
+        "agreement_rate": 0.5239,
+        "attack_time": 4.402928311377764,
+        "defense_metrics": {
+          "query_count": 16,
+          "perturbed_responses": 447,
+          "blocked_queries": 1553,
+          "deceptive_responses": 0,
+          "perturbation_rate": 27.9375,
+          "block_rate": 97.0625,
+          "deception_rate": 0.0
+        }
+      },
+      "n5000": {
+        "surrogate_accuracy": 0.5078,
+        "agreement_rate": 0.5087,
+        "attack_time": 10.97293831128627,
+        "defense_metrics": {
+          "query_count": 56,
+          "perturbed_responses": 1544,
+          "blocked_queries": 5456,
+          "deceptive_responses": 0,
+          "perturbation_rate": 27.571428571428573,
+          "block_rate": 97.42857142857143,
+          "deception_rate": 0.0
+        }
+      },
+      "n8000": {
+        "surrogate_accuracy": 0.5105,
+        "agreement_rate": 0.5103,
+        "attack_time": 17.605409184936434,
+        "defense_metrics": {
+          "query_count": 119,
+          "perturbed_responses": 3275,
+          "blocked_queries": 11725,
+          "deceptive_responses": 0,
+          "perturbation_rate": 27.521008403361346,
+          "block_rate": 98.52941176470588,
+          "deception_rate": 0.0
+        }
+      }
+    }
+  },
+  "effectiveness": {
+    "low": {
+      "accuracy_reduction": 0.36999999999999256,
+      "agreement_reduction": 0.44000000000000705,
+      "relative_impact": 0.4460665044606722
+    },
+    "medium": {
+      "accuracy_reduction": 44.37,
+      "agreement_reduction": 44.81,
+      "relative_impact": 45.42781832927819
+    },
+    "high": {
+      "accuracy_reduction": 49.029999999999994,
+      "agreement_reduction": 49.31,
+      "relative_impact": 49.98986212489862
+    },
+    "adaptive": {
+      "accuracy_reduction": 47.17,
+      "agreement_reduction": 47.61000000000001,
+      "relative_impact": 48.26642335766424
+    }
+  },
+  "victim_accuracy": 0.9878
+}

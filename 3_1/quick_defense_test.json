@@ -1,0 +1,25 @@
+{
+  "undefended": {
+    "accuracy": 0.9788,
+    "agreement": 0.9822,
+    "time": 17.155431580729783
+  },
+  "defended": {
+    "accuracy": 0.4863,
+    "agreement": 0.4873,
+    "time": 17.427718550898135
+  },
+  "defense_report": {
+    "query_count": 63,
+    "perturbed_responses": 1075,
+    "blocked_queries": 6259,
+    "deceptive_responses": 666,
+    "perturbation_rate": 17.063492063492063,
+    "block_rate": 99.34920634920636,
+    "deception_rate": 10.571428571428571
+  },
+  "impact": {
+    "accuracy_reduction": 49.25,
+    "agreement_reduction": 49.489999999999995
+  }
+}

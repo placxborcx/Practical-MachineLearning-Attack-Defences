@@ -1,0 +1,12 @@
+{
+  "victim_acc": 0.9878,
+  "surrogate_acc": 0.9507,
+  "agreement": 0.9546,
+  "timings": {
+    "victim_prepare_s": 0.003721831366419792,
+    "query_phase_s": 0.5464317803271115,
+    "surrogate_train_s": 4.116904408205301,
+    "evaluation_s": 8.165527974255383,
+    "total_runtime_s": 12.832738738972694
+  }
+}
