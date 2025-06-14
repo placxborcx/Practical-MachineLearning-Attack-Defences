@@ -167,39 +167,8 @@ class DefenseMechanism:
         return ood_scores, is_ood
 
     def _analyze_query_patterns(self, x: torch.Tensor) -> float:
-        """Enhanced pattern analysis with multiple signals."""
-        """
-        fps = self._generate_fingerprints(x)
+        #Enhanced pattern analysis with multiple signals.
         
-        # 1. Duplicate detection
-        dup_count = sum(self.query_fingerprints[fp] > 1 for fp in fps)
-        dup_ratio = dup_count / len(fps)
-        
-        # 2. Query diversity (entropy of fingerprints)
-        if len(self.query_fingerprints) > 10:
-            fp_counts = np.array(list(self.query_fingerprints.values()))
-            fp_probs = fp_counts / fp_counts.sum()
-            fp_entropy = entropy(fp_probs)
-            # Low entropy = repetitive queries
-            diversity_score = 1.0 - (fp_entropy / np.log(len(self.query_fingerprints) + 1))
-        else:
-            diversity_score = 0.0
-        
-        # Update fingerprint counts
-        for fp in fps:
-            self.query_fingerprints[fp] += 1
-        
-        # 3. Query rate analysis
-        current_time = torch.cuda.Event(enable_timing=True)
-        current_time.record()
-        self.query_timestamps.append(current_time)
-        
-        if len(self.query_timestamps) >= self.config["max_queries_per_window"]:
-            rate_score = 0.5  # High query rate detected
-        else:
-            rate_score = 0.0
-        
-        """
         fps = self._generate_fingerprints(x)
         
         # 1. Duplicate detection

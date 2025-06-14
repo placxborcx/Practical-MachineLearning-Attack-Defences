@@ -164,20 +164,23 @@ def run_comprehensive_defense_test():
     # Test configurations
     test_configs = {
         'weak_defense': {
+            "block_threshold": 0.85,
             'baseline_suspicion': 0.05,
-            'perturb_threshold': 0.50,
+            'perturb_threshold': 0.65,
             'top_k': 10
         },
         'moderate_defense': {
+            "block_threshold": 0.70,
             'baseline_suspicion': 0.15,
-            'perturb_threshold': 0.30,
+            'perturb_threshold': 0.50,
             'top_k': 5,
             'base_noise_scale': 0.02,
             'max_noise_scale': 0.20
         },
         'strong_defense': {
+            "block_threshold": 0.55,
             'baseline_suspicion': 0.20,
-            'perturb_threshold': 0.25,
+            'perturb_threshold': 0.35,
             'top_k': 3,
             'base_noise_scale': 0.03,
             'max_noise_scale': 0.30,
@@ -191,7 +194,7 @@ def run_comprehensive_defense_test():
             'base_noise_scale': 0.05,
             'max_noise_scale': 0.40,
             'ood_threshold': 0.60,
-            'block_threshold': 0.60,
+            'block_threshold': 0.40,
             'temperature_base': 2.5
         }
     }
