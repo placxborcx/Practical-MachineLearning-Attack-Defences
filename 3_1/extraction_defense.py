@@ -50,6 +50,9 @@ def evaluate_normal_usage_impact(victim_model, defended_api, test_loader, num_sa
     sample_count = 0
     victim_model.eval()
     
+    # Create undefended API for fair comparison
+    undefended_api = BlackBoxAPI(victim_model)
+    
     with torch.no_grad():
         for data, labels in test_loader:
             if sample_count >= num_samples:
@@ -59,11 +62,11 @@ def evaluate_normal_usage_impact(victim_model, defended_api, test_loader, num_sa
             data = data[:batch_size].to(device)
             labels = labels[:batch_size]
             
-            # Undefended predictions
-            undefended_output = victim_model(data)
+            # Undefended predictions (using BlackBoxAPI for consistency)
+            undefended_output = undefended_api.query(data, logits=True)
             undefended_pred = undefended_output.argmax(dim=1).cpu()
             
-            # Defended predictions (through API)
+            # Defended predictions (through defended API)
             defended_output = defended_api.query(data, logits=True)
             defended_pred = defended_output.argmax(dim=1).cpu()
             
@@ -87,6 +90,11 @@ def evaluate_normal_usage_impact(victim_model, defended_api, test_loader, num_sa
     
     # Accuracy drop
     accuracy_drop = undefended_accuracy - defended_accuracy
+    
+    # Debug output
+    print(f"  Debug - Undefended correct: {(undefended_predictions == true_labels).sum()}/{len(true_labels)}")
+    print(f"  Debug - Defended correct: {(defended_predictions == true_labels).sum()}/{len(true_labels)}")
+    print(f"  Debug - Predictions differ: {(undefended_predictions != defended_predictions).sum()}")
     
     # Per-class analysis
     class_impacts = {}
@@ -126,28 +134,34 @@ def comprehensive_defense_evaluation_with_normal_usage():
             'base_noise_scale': 0.005,
             'max_noise_scale': 0.05,
             'block_threshold': 0.9,
-            'ood_threshold': 0.9
+            'ood_threshold': 0.9,
+            'perturb_threshold': 0.4,
+            'top_k': 10  # Allow all logits for low defense
         },
         'medium': {
             'base_noise_scale': 0.01,
             'max_noise_scale': 0.1,
             'block_threshold': 0.7,
-            'ood_threshold': 0.85
+            'ood_threshold': 0.85,
+            'perturb_threshold': 0.3,
+            'top_k': 5  # Restrict to top-5 logits
         },
         'high': {
             'base_noise_scale': 0.02,
             'max_noise_scale': 0.2,
             'block_threshold': 0.5,
             'ood_threshold': 0.8,
-            'deception_probability': 0.4
+            'deception_probability': 0.4,
+            'perturb_threshold': 0.2,
+            'top_k': 1  # Only top-1 logit (maximum protection)
         },
         'adaptive': {
             'base_noise_scale': 0.01,
             'max_noise_scale': 0.15,
             'block_threshold': 0.6,
             'ood_threshold': 0.85,
-            'adaptive_factor': 3.0,
-            'pattern_threshold': 0.25
+            'perturb_threshold': 0.25,
+            'top_k': 3  # Top-3 logits
         }
     }
     

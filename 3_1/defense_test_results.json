@@ -1,0 +1,163 @@
+{
+  "timestamp": "2025-06-14 09:48:31",
+  "victim_accuracy": 0.9889,
+  "configurations": {
+    "weak_defense": {
+      "baseline_suspicion": 0.05,
+      "perturb_threshold": 0.5,
+      "top_k": 10
+    },
+    "moderate_defense": {
+      "baseline_suspicion": 0.15,
+      "perturb_threshold": 0.3,
+      "top_k": 5,
+      "base_noise_scale": 0.02,
+      "max_noise_scale": 0.2
+    },
+    "strong_defense": {
+      "baseline_suspicion": 0.2,
+      "perturb_threshold": 0.25,
+      "top_k": 3,
+      "base_noise_scale": 0.03,
+      "max_noise_scale": 0.3,
+      "ood_threshold": 0.65,
+      "temperature_base": 2.0
+    },
+    "aggressive_defense": {
+      "baseline_suspicion": 0.25,
+      "perturb_threshold": 0.2,
+      "top_k": 1,
+      "base_noise_scale": 0.05,
+      "max_noise_scale": 0.4,
+      "ood_threshold": 0.6,
+      "block_threshold": 0.6,
+      "temperature_base": 2.5
+    }
+  },
+  "results": {
+    "weak_defense": {
+      "baseline": {
+        "accuracy": 0.9764,
+        "agreement": 0.9798,
+        "time": 9.671516844000507
+      },
+      "defended": {
+        "accuracy": 0.098,
+        "agreement": 0.0983,
+        "time": 9.796953926999777
+      },
+      "defense_stats": {
+        "total_queries": 5000,
+        "blocked_queries": 4872,
+        "perturbed_responses": 5000,
+        "unique_query_patterns": 5000,
+        "average_suspicion": NaN,
+        "block_rate": 0.9744,
+        "perturb_rate": 1.0,
+        "api_calls": 40
+      },
+      "normal_usage": {
+        "accuracy": 0.985,
+        "drop": 0.0039000000000000146
+      },
+      "effectiveness": {
+        "acc_reduction": 89.96312986480952,
+        "agr_reduction": 89.96734027352521,
+        "score": 89.96523506916736
+      }
+    },
+    "moderate_defense": {
+      "baseline": {
+        "accuracy": 0.9738,
+        "agreement": 0.9767,
+        "time": 9.543936883001152
+      },
+      "defended": {
+        "accuracy": 0.098,
+        "agreement": 0.0983,
+        "time": 9.4706218479987
+      },
+      "defense_stats": {
+        "total_queries": 5000,
+        "blocked_queries": 4864,
+        "perturbed_responses": 5000,
+        "unique_query_patterns": 5000,
+        "average_suspicion": NaN,
+        "block_rate": 0.9728,
+        "perturb_rate": 1.0,
+        "api_calls": 40
+      },
+      "normal_usage": {
+        "accuracy": 0.985,
+        "drop": 0.0039000000000000146
+      },
+      "effectiveness": {
+        "acc_reduction": 89.93633189566647,
+        "agr_reduction": 89.93549708201087,
+        "score": 89.93591448883868
+      }
+    },
+    "strong_defense": {
+      "baseline": {
+        "accuracy": 0.9759,
+        "agreement": 0.9786,
+        "time": 10.684438223001052
+      },
+      "defended": {
+        "accuracy": 0.098,
+        "agreement": 0.0983,
+        "time": 9.608518880999327
+      },
+      "defense_stats": {
+        "total_queries": 5000,
+        "blocked_queries": 4872,
+        "perturbed_responses": 5000,
+        "unique_query_patterns": 5000,
+        "average_suspicion": NaN,
+        "block_rate": 0.9744,
+        "perturb_rate": 1.0,
+        "api_calls": 40
+      },
+      "normal_usage": {
+        "accuracy": 0.985,
+        "drop": 0.0039000000000000146
+      },
+      "effectiveness": {
+        "acc_reduction": 89.95798749871913,
+        "agr_reduction": 89.95503780911507,
+        "score": 89.9565126539171
+      }
+    },
+    "aggressive_defense": {
+      "baseline": {
+        "accuracy": 0.9727,
+        "agreement": 0.9756,
+        "time": 9.909585878000144
+      },
+      "defended": {
+        "accuracy": 0.098,
+        "agreement": 0.0983,
+        "time": 11.21233478800059
+      },
+      "defense_stats": {
+        "total_queries": 5000,
+        "blocked_queries": 4872,
+        "perturbed_responses": 5000,
+        "unique_query_patterns": 5000,
+        "average_suspicion": NaN,
+        "block_rate": 0.9744,
+        "perturb_rate": 1.0,
+        "api_calls": 40
+      },
+      "normal_usage": {
+        "accuracy": 0.972,
+        "drop": 0.016900000000000026
+      },
+      "effectiveness": {
+        "acc_reduction": 89.92495116685515,
+        "agr_reduction": 89.92414924149242,
+        "score": 89.92455020417378
+      }
+    }
+  }
+}
