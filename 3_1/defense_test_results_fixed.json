@@ -1,0 +1,183 @@
+{
+  "timestamp": "2025-06-14 14:22:40",
+  "victim_accuracy": 0.9889,
+  "configurations": {
+    "no_defense": {
+      "baseline_suspicion": 0.0,
+      "block_threshold": 1.0,
+      "perturb_threshold": 1.0,
+      "top_k": 100,
+      "base_noise_scale": 0.0
+    },
+    "light_defense": {
+      "baseline_suspicion": 0.15,
+      "block_threshold": 0.85,
+      "perturb_threshold": 0.7,
+      "top_k": 5,
+      "base_noise_scale": 0.01,
+      "ood_threshold": 0.8
+    },
+    "moderate_defense": {
+      "baseline_suspicion": 0.25,
+      "block_threshold": 0.7,
+      "perturb_threshold": 0.5,
+      "top_k": 3,
+      "base_noise_scale": 0.03,
+      "max_noise_scale": 0.2,
+      "ood_threshold": 0.7,
+      "temperature_base": 1.8
+    },
+    "aggressive_defense": {
+      "baseline_suspicion": 0.35,
+      "block_threshold": 0.6,
+      "perturb_threshold": 0.3,
+      "top_k": 2,
+      "base_noise_scale": 0.05,
+      "max_noise_scale": 0.3,
+      "ood_threshold": 0.6,
+      "temperature_base": 2.5
+    }
+  },
+  "results": {
+    "no_defense": {
+      "baseline": {
+        "accuracy": 0.96,
+        "agreement": 0.9624,
+        "time": 4.172813210003369
+      },
+      "defended": {
+        "accuracy": 0.098,
+        "agreement": 0.0983,
+        "time": 3.828163633002987
+      },
+      "defense_stats": {
+        "total_queries": 2000,
+        "blocked_queries": 0,
+        "perturbed_responses": 32,
+        "unique_query_patterns": 2000,
+        "average_suspicion": NaN,
+        "block_rate": 0.0,
+        "perturb_rate": 0.016,
+        "api_calls": 63
+      },
+      "normal_usage": {
+        "accuracy": 0.986,
+        "drop": 0.0029000000000000137
+      },
+      "effectiveness": {
+        "acc_reduction": 89.79166666666667,
+        "agr_reduction": 89.78595178719868,
+        "score": 89.78880922693267
+      },
+      "output_analysis": {
+        "kl_divergence": -2.8691714802631108e-12,
+        "l1_difference": 3.5950358494166515e-14
+      }
+    },
+    "light_defense": {
+      "baseline": {
+        "accuracy": 0.956,
+        "agreement": 0.9595,
+        "time": 4.095024680002098
+      },
+      "defended": {
+        "accuracy": 0.098,
+        "agreement": 0.0983,
+        "time": 3.9385729919995356
+      },
+      "defense_stats": {
+        "total_queries": 2000,
+        "blocked_queries": 0,
+        "perturbed_responses": 32,
+        "unique_query_patterns": 2000,
+        "average_suspicion": NaN,
+        "block_rate": 0.0,
+        "perturb_rate": 0.016,
+        "api_calls": 63
+      },
+      "normal_usage": {
+        "accuracy": 0.982,
+        "drop": 0.006900000000000017
+      },
+      "effectiveness": {
+        "acc_reduction": 89.7489539748954,
+        "agr_reduction": 89.755080771235,
+        "score": 89.7520173730652
+      },
+      "output_analysis": {
+        "kl_divergence": 0.1730058491230011,
+        "l1_difference": 0.03139254078269005
+      }
+    },
+    "moderate_defense": {
+      "baseline": {
+        "accuracy": 0.9543,
+        "agreement": 0.9568,
+        "time": 4.005825862001075
+      },
+      "defended": {
+        "accuracy": 0.098,
+        "agreement": 0.0983,
+        "time": 3.7586616730004607
+      },
+      "defense_stats": {
+        "total_queries": 2000,
+        "blocked_queries": 1968,
+        "perturbed_responses": 2000,
+        "unique_query_patterns": 2000,
+        "average_suspicion": NaN,
+        "block_rate": 0.984,
+        "perturb_rate": 1.0,
+        "api_calls": 63
+      },
+      "normal_usage": {
+        "accuracy": 0.978,
+        "drop": 0.01090000000000002
+      },
+      "effectiveness": {
+        "acc_reduction": 89.73069265430158,
+        "agr_reduction": 89.72617056856188,
+        "score": 89.72843161143173
+      },
+      "output_analysis": {
+        "kl_divergence": 0.23841118812561035,
+        "l1_difference": 0.042039789259433746
+      }
+    },
+    "aggressive_defense": {
+      "baseline": {
+        "accuracy": 0.9577,
+        "agreement": 0.9617,
+        "time": 4.035447434001981
+      },
+      "defended": {
+        "accuracy": 0.098,
+        "agreement": 0.0983,
+        "time": 4.0699977860022045
+      },
+      "defense_stats": {
+        "total_queries": 2000,
+        "blocked_queries": 1968,
+        "perturbed_responses": 2000,
+        "unique_query_patterns": 2000,
+        "average_suspicion": NaN,
+        "block_rate": 0.984,
+        "perturb_rate": 1.0,
+        "api_calls": 63
+      },
+      "normal_usage": {
+        "accuracy": 0.974,
+        "drop": 0.014900000000000024
+      },
+      "effectiveness": {
+        "acc_reduction": 89.7671504646549,
+        "agr_reduction": 89.77851720910887,
+        "score": 89.77283383688189
+      },
+      "output_analysis": {
+        "kl_divergence": 0.36944475769996643,
+        "l1_difference": 0.061202362179756165
+      }
+    }
+  }
+}

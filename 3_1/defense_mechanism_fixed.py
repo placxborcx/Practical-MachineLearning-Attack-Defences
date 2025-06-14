@@ -267,29 +267,45 @@ class DefenseMechanism:
         return min(score, 1.0)
 
     def _controlled_release(self, outputs: torch.Tensor, k: int) -> torch.Tensor:
-        """Improved controlled release that adds noise instead of zeroing."""
-        batch_size = outputs.size(0)
-        
-        # Get top-k values and indices
-        topk_values, topk_indices = torch.topk(outputs, k=k, dim=1)
-        
-        # Create noise for non-top-k values
+        """
+        Return a log-softmax distribution where:
+        • If k is None or k >= #classes, we release the full distribution (no control).
+        • Else we keep top-k logits untouched and add small Gaussian noise to
+            the rest, ensuring top-1 remains identical.
+
+        Parameters
+        ----------
+        outputs : torch.Tensor
+            Raw logits from the victim model with shape (batch, num_classes).
+        k : int
+            Number of logits to keep.  Must satisfy 1 ≤ k ≤ num_classes, otherwise
+            we fall back to releasing the full log-softmax.
+        """
+        num_classes = outputs.size(1)
+
+        # ---- Safety check: k out of range → release full distribution ----------
+        if k is None or k >= num_classes:
+            return F.log_softmax(outputs, dim=1)
+
+        # ---- Normal controlled-release path ------------------------------------
+        # 1. Identify top-k logits for each sample
+        topk_vals, topk_idx = torch.topk(outputs, k=k, dim=1)
+
+        # 2. Clone outputs and add Gaussian noise to non-top-k entries
         noise_scale = 0.1
-        noise = torch.randn_like(outputs) * noise_scale
-        
-        # Create output tensor
         controlled = outputs.clone()
-        
-        # Add noise to non-top-k values
+        noise = torch.randn_like(outputs) * noise_scale
+
         mask = torch.ones_like(outputs, dtype=torch.bool)
-        mask.scatter_(1, topk_indices, False)
+        mask.scatter_(1, topk_idx, False)           # False where we keep logits
         controlled[mask] += noise[mask]
-        
-        # Ensure top-1 remains unchanged
-        top1_indices = topk_indices[:, 0].unsqueeze(1)
-        controlled.scatter_(1, top1_indices, topk_values[:, 0].unsqueeze(1))
-        
+
+        # 3. Guarantee top-1 logit exactly equals original top-1 value
+        top1_idx = topk_idx[:, 0].unsqueeze(1)      # (batch, 1)
+        controlled.scatter_(1, top1_idx, topk_vals[:, 0].unsqueeze(1))
+
         return F.log_softmax(controlled, dim=1)
+
 
     def _apply_deceptive_perturbation(
         self, outputs: torch.Tensor, suspicion: float

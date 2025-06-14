@@ -10,6 +10,7 @@ import time
 import torch
 import numpy as np
 from typing import Dict, List, Tuple
+from torch.utils.data import TensorDataset
 
 # Import necessary components
 from extraction_attack import (
@@ -31,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 IMG_SHAPE = (1, 28, 28)  # (C, H, W) for MNIST
 C, H, W = IMG_SHAPE
-
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def debug_defense_config_application(defense_config, config_name):
     """Debug if defense configuration is properly applied"""
@@ -264,9 +265,8 @@ def build_query_set_with_monitoring(api, n_queries):
         elif batch_idx % 3 == 1:
             # Repeated queries to trigger pattern detection (30% of batches)
             base_query = torch.randn(1, C, H, W, device=DEVICE)
-            x = base_query.repeat(batch_size, 1, 1, 1)
-            # Add small variations
-            x += torch.randn_like(x) * 0.1
+            x = base_query.repeat(batch_size, 1, 1, 1)+ torch.randn(batch_size, C, H, W, device=DEVICE) * 0.1
+            
         else:
             # Semi-structured queries (40% of batches)
             x = torch.randn(batch_size, C, H, W, device=DEVICE)
@@ -277,27 +277,35 @@ def build_query_set_with_monitoring(api, n_queries):
         y_pred = api.query(x, logits=True)
         
         queries.append(x.cpu())
-        labels.append(y_pred.argmax(dim=1).cpu())
+        
+        probs = torch.exp(y_pred).cpu()     
+        labels.append(probs)
+
+        
         
         # Check defense stats at intervals
-        current_queries = (batch_idx + 1) * batch_size
-        if next_check < len(check_intervals) and current_queries >= check_intervals[next_check]:
+        current = (batch_idx + 1) * batch_size
+        if next_check < len(check_intervals) and current >= check_intervals[next_check]:
             stats = api.get_defense_report()
-            print(f"     Query {current_queries}: Suspicion={stats.get('average_suspicion', 0):.3f}, "
-                  f"Perturb={stats.get('perturb_rate', 0)*100:.1f}%, "
-                  f"Block={stats.get('block_rate', 0)*100:.1f}%")
+            print(f"     Query {current}: Suspicion={stats.get('average_suspicion',0):.3f}, "
+                  f"Perturb={stats.get('perturb_rate',0)*100:.1f}%, "
+                  f"Block={stats.get('block_rate',0)*100:.1f}%")
             
             next_check += 1
     
     # Handle remaining queries
-    remaining = n_queries - n_batches * batch_size
-    if remaining > 0:
-        x = torch.randn(remaining, C, H, W, device=DEVICE)
+    rem = n_queries - n_batches * batch_size
+    if rem > 0:
+        x = torch.randn(rem, C, H, W, device=DEVICE)
         y_pred = api.query(x, logits=True)
         queries.append(x.cpu())
-        labels.append(y_pred.argmax(dim=1).cpu())
+        labels.append(torch.exp(y_pred).cpu())
     
-    return torch.cat(queries), torch.cat(labels)
+    #return torch.cat(queries), torch.cat(labels)
+    from torch.utils.data import TensorDataset
+    X = torch.cat(queries)   # shape [n_queries, 1, 28, 28]
+    Y = torch.cat(labels)    # shape [n_queries]
+    return TensorDataset(X, Y)
 
 
 def test_normal_usage_accuracy(victim_model, defended_api, test_loader, n_samples=1000):
